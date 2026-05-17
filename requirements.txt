@@ -1,0 +1,46 @@
+# ============================================================
+# Platform Backend - Dependencias Python
+# ============================================================
+# Framework web asíncrono - elegido por rendimiento y tipado
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+
+# ORM y base de datos
+sqlalchemy==2.0.35
+asyncpg==0.29.0          # Driver async para PostgreSQL
+alembic==1.13.2           # Migraciones de esquema
+
+# Autenticación
+python-jose[cryptography]==3.3.0   # JWT tokens
+bcrypt==5.0.0                      # Hashing de contraseñas (passlib no es compatible con bcrypt>=4)
+python-multipart==0.0.9            # Form data (login)
+
+# Validación y serialización
+pydantic==2.9.2
+pydantic-settings==2.5.2
+email-validator==2.2.0
+
+# Markdown y contenido
+markdown==3.7
+pygments==2.18.0          # Syntax highlighting para código
+
+# Pagos
+mercadopago==2.2.2
+
+# CORS y middleware
+starlette==0.38.6
+
+# Rate limiting
+slowapi==0.1.9            # Rate limiting para FastAPI
+
+# Email (producción)
+aiosmtplib==3.0.2         # Envío async de emails
+
+# Utilidades
+python-dotenv==1.0.1
+httpx==0.27.2             # Cliente HTTP async (tests, webhooks, captcha)
+aiofiles==24.1.0          # Lectura async de archivos
+
+# Testing
+pytest==8.3.3
+pytest-asyncio==0.24.0
