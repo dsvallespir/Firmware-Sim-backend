@@ -58,7 +58,7 @@ class CompileResponse(BaseModel):
     """Resultado de compilación."""
     success: bool
     hex_content: Optional[str] = None
-    binary_content: Optional[str] = None  # base64 para RP2040/ESP32
+    bin_content: Optional[str] = None  # base64 para RP2040/ESP32
     binary_type: Optional[str] = None     # 'hex', 'bin', 'uf2'
     stdout: str = ""
     stderr: str = ""

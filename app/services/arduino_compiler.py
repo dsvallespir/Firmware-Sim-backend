@@ -24,6 +24,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+import base64
 from pathlib import Path
 from typing import Optional
 
@@ -38,6 +39,14 @@ ALLOWED_BOARDS: dict[str, dict] = {
     "arduino:avr:mega":       {"name": "Arduino Mega 2560", "variant": "mega"},
     "arduino:avr:leonardo":   {"name": "Arduino Leonardo",  "variant": "uno"},
     "arduino:avr:micro":      {"name": "Arduino Micro",     "variant": "uno"},
+    # ESP32
+    "esp32:esp32:esp32":      {"name": "ESP32 (Clásico)",   "variant": "esp32"},
+    "esp32:esp32:esp32:FlashSize=4M,FlashMode=dio": {
+        "name": "ESP32 Dev Module (4MB/DIO)", 
+        "variant": "esp32"
+    },
+    "esp32:esp32:esp32s3":    {"name": "ESP32-S3",          "variant": "esp32s3"},
+    "esp32:esp32:esp32c3":    {"name": "ESP32-C3 (RISC-V)", "variant": "esp32c3"}
 }
 
 # ----------------------------------------------------------
@@ -367,9 +376,12 @@ class ArduinoCompilerService:
                 )
 
             # ── Compilar ──────────────────────────────────────────────
+
             build_dir = sketch_dir / "build"
             build_dir.mkdir()
-
+            if build_dir.exists():
+                shutil.rmtree(build_dir)
+            build_dir.mkdir(parents=True, exist_ok=True)
             # SEGURIDAD: lista de argumentos, NUNCA string + shell=True
             cmd = [
                 self.cli_path,
@@ -446,43 +458,91 @@ class ArduinoCompilerService:
                 }
 
             # ── Buscar archivo .hex de salida ─────────────────────────
-            hex_file = build_dir / "sketch.ino.hex"
-            if not hex_file.exists():
-                # Intentar con otros nombres posibles
-                hex_files = list(build_dir.glob("*.hex"))
-                hex_file = hex_files[0] if hex_files else None
+            # ── Buscar archivo de salida (.hex o .bin) ─────────────────
+            is_esp32 = "esp32" or "esp32:FlashSize=4M,FlashMode=dio" in board_fqbn
+            
+            if is_esp32:
+                # 1. Intentamos buscar el archivo de app con nombre genérico
+                bin_file = build_dir / "sketch.ino.bin"
+                
+                # 2. Si no existe, buscamos el archivo real de la aplicación filtrando el resto
+                if not bin_file.exists():
+                    all_bins = list(build_dir.glob("*.bin"))
+                    
+                    # Filtramos: Queremos el .bin que NO sea bootloader, ni partitions, ni merged
+                    app_files = [
+                        f for f in all_bins 
+                        if "bootloader" not in f.name 
+                        and "partitions" not in f.name 
+                        and "merged" not in f.name
+                        and f.name != "sketch.ino.bin" # 👈 DESPRECIAMOS EL INTERMEDIO GENÉRICO
+                
+                    ]
+                    
+                    # Si encontramos el binario puro de la app, lo asignamos
+                    if app_files:
+                        bin_file = app_files[0]
+                    else:
+                    # Fallback solo si no hay otro:
+                        bin_file = build_dir / "sketch.ino.bin"
 
-            if hex_file and hex_file.exists():
-                hex_content = hex_file.read_text(encoding="utf-8")
-                logger.info(
-                    f"Compilación exitosa: {len(hex_content)} bytes hex, "
-                    f"Flash: {flash_used}/{flash_total}, RAM: {ram_used}/{ram_total}"
-                )
-                return {
-                    "success": True,
-                    "hex_content": hex_content,
-                    "stdout": (lib_stdout + "\n" + stdout).strip(),
-                    "stderr": stderr,
-                    "error": None,
-                    "flash_used": flash_used,
-                    "flash_total": flash_total,
-                    "ram_used": ram_used,
-                    "ram_total": ram_total,
-                }
+                # 3. Procesamos el archivo correcto
+                if bin_file and bin_file.exists():
+                    logger.info(f"Enviando al frontend el binario de aplicación: {bin_file.name} ({bin_file.stat().st_size} bytes)")
+                    raw_bytes = bin_file.read_bytes()
+                    encoded_content = base64.b64encode(raw_bytes).decode('utf-8')
+                    logger.info(f"Compilación ESP32 Exitosa: {len(raw_bytes)} bytes")
+                    return {
+                        "success": True,
+                        "hex_content": None,
+                        "bin_content": encoded_content,
+                        "binary_type": "esp32", # Clave informativa para el frontend
+                        "stdout": (lib_stdout + "\n" + stdout).strip(),
+                        "stderr": stderr,
+                        "error": None,
+                        "flash_used": flash_used,
+                        "flash_total": flash_total,
+                        "ram_used": ram_used,
+                        "ram_total": ram_total,
+                    }
+                    
+            else:
+                # Lógica original para Arduino AVR (.hex)
+                hex_file = build_dir / "sketch.ino.hex"
+                if not hex_file.exists():
+                    hex_files = list(build_dir.glob("*.hex"))
+                    hex_file = hex_files[0] if hex_files else None
 
-            logger.warning(f"Archivo .hex no encontrado en {build_dir}")
+                if hex_file and hex_file.exists():
+                    hex_content = hex_file.read_text(encoding="utf-8")
+                    logger.info(
+                        f"Compilación exitosa: {len(hex_content)} bytes hex, "
+                        f"Flash: {flash_used}/{flash_total}, RAM: {ram_used}/{ram_total}"
+                    )
+                    return {
+                        "success": True,
+                        "hex_content": hex_content,
+                        "bin_content": None,
+                        "stdout": (lib_stdout + "\n" + stdout).strip(),
+                        "stderr": stderr,
+                        "error": None,
+                        "flash_used": flash_used,
+                        "flash_total": flash_total,
+                        "ram_used": ram_used,
+                        "ram_total": ram_total,
+                    }
+
+            # Si llega aquí, no encontró ni .hex ni .bin
+            logger.warning(f"Archivo compilado no encontrado en {build_dir}")
             return {
                 "success": False,
                 "hex_content": None,
+                "bin_content": None,
                 "stdout": (lib_stdout + "\n" + stdout).strip(),
                 "stderr": stderr,
-                "error": "Archivo .hex no encontrado tras compilación",
-                "flash_used": flash_used,
-                "flash_total": flash_total,
-                "ram_used": ram_used,
-                "ram_total": ram_total,
+                "error": "Archivo binario/.hex no encontrado tras compilación",
+                # ... (resto de las métricas)
             }
-
     # ── Helpers privados ──────────────────────────────────────────
 
     @staticmethod
