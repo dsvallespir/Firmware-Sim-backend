@@ -65,6 +65,12 @@ RUN curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/inst
 # Ahora el sistema lo va a encontrar de forma global sin importar el PATH
 RUN arduino-cli config init
 
+# =========================================================================
+# NUEVA CORRECCIÓN: Descargar los índices e instalar las herramientas AVR
+# =========================================================================
+RUN arduino-cli core update-index
+RUN arduino-cli core install arduino:avr
+
 COPY . .
 
 # Asegúrate de exponer el puerto correcto que leerá Railway
