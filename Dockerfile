@@ -61,11 +61,9 @@ COPY . .
 # Puerto del servidor
 EXPOSE 8000
 
-# Health check
+# Modifica el Health check para que use la variable PORT interna de Docker
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
-    CMD python -c "import httpx; httpx.get('http://localhost:8000/api/health')" || exit 1
+    CMD python -c "import httpx; import os; port = os.getenv('PORT', '8000'); httpx.get(f'http://localhost:{port}/api/health')" || exit 1
 
-# Ejecutar con uvicorn
-# --host 0.0.0.0: escuchar en todas las interfaces (necesario en Docker)
-# --workers 4: 4 procesos worker (ajustar según CPU)
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+# Ejecutar con uvicorn usando Shell form para permitir la variable $PORT
+CMD uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 4
