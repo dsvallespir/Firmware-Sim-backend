@@ -44,6 +44,9 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # ----------------------------------------------------------
 # Etapa final
 # ----------------------------------------------------------
+# ----------------------------------------------------------
+# Etapa final
+# ----------------------------------------------------------
 FROM base AS final
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -52,22 +55,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# CORRECCIÓN: Usar la URL oficial del script de instalación de arduino-cli
-RUN curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh
-
-# Ahora sí va a encontrar el binario instalado en /usr/local/bin
-RUN arduino-cli config init
-
-# Copiar dependencias instaladas desde la etapa anterior
+# Copiar dependencias de Python primero (antes de tocar /usr/local/bin)
 COPY --from=dependencies /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 COPY --from=dependencies /usr/local/bin /usr/local/bin
+
+# CORRECCIÓN: Forzar la instalación de arduino-cli directamente en /usr/local/bin
+RUN curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=/usr/local/bin sh
+
+# Ahora el sistema lo va a encontrar de forma global sin importar el PATH
+RUN arduino-cli config init
 
 COPY . .
 
 # Puerto del servidor
 EXPOSE 8000
 
-# El resto queda exactamente igual...
+# El resto queda igual...
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
     CMD python -c "import httpx; import os; port = os.getenv('PORT', '8000'); httpx.get(f'http://localhost:{port}/api/health')" || exit 1
 
