@@ -46,16 +46,22 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # ----------------------------------------------------------
 FROM base AS final
 
-# Instalar solo el runtime de PostgreSQL (no el dev)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
+    curl \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
+
+# Instalar arduino-cli en /usr/local/bin de forma oficial
+RUN curl -fsSL https://githubusercontent.com | sh
+
+# Inicializar la configuración de arduino-cli (opcional pero recomendado)
+RUN arduino-cli config init
 
 # Copiar dependencias instaladas desde la etapa anterior
 COPY --from=dependencies /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 COPY --from=dependencies /usr/local/bin /usr/local/bin
 
-# Copiar código de la aplicación
 COPY . .
 
 # Puerto del servidor
