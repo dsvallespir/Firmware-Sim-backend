@@ -67,11 +67,13 @@ RUN arduino-cli config init
 
 COPY . .
 
-# Puerto del servidor
+# Asegúrate de exponer el puerto correcto que leerá Railway
 EXPOSE 8080
 
-# El resto queda igual...
+# Healthcheck corregido: Si falla la variable PORT, usa 8080.
+# Además, cambiamos 'localhost' por '127.0.0.1' que es más rápido y directo en Docker.
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
-    CMD python -c "import httpx; import os; port = os.getenv('PORT', '8000'); httpx.get(f'http://localhost:{port}/api/health')" || exit 1
+    CMD python -c "import httpx; import os; port = os.getenv('PORT', '8080'); httpx.get(f'http://127.0.0.1:{port}/api/health')" || exit 1
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "4"]
+# Comando de inicio optimizado a 1 worker para estabilizar el proxy de Railway
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
