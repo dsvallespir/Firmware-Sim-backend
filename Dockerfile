@@ -52,10 +52,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Instalar arduino-cli en /usr/local/bin de forma oficial
-RUN curl -fsSL https://githubusercontent.com | sh
+# CORRECCIÓN: Usar la URL oficial del script de instalación de arduino-cli
+RUN curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh
 
-# Inicializar la configuración de arduino-cli (opcional pero recomendado)
+# Ahora sí va a encontrar el binario instalado en /usr/local/bin
 RUN arduino-cli config init
 
 # Copiar dependencias instaladas desde la etapa anterior
@@ -67,9 +67,8 @@ COPY . .
 # Puerto del servidor
 EXPOSE 8000
 
-# Modifica el Health check para que use la variable PORT interna de Docker
+# El resto queda exactamente igual...
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
     CMD python -c "import httpx; import os; port = os.getenv('PORT', '8000'); httpx.get(f'http://localhost:{port}/api/health')" || exit 1
 
-# Ejecutar con uvicorn usando Shell form para permitir la variable $PORT
 CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 4"]
