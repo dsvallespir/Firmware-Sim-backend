@@ -72,4 +72,4 @@ HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
     CMD python -c "import httpx; import os; port = os.getenv('PORT', '8000'); httpx.get(f'http://localhost:{port}/api/health')" || exit 1
 
 # Ejecutar con uvicorn usando Shell form para permitir la variable $PORT
-CMD uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 4
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 4"]
