@@ -68,7 +68,7 @@ RUN arduino-cli config init
 COPY . .
 
 # Puerto del servidor
-EXPOSE 8000
+EXPOSE 8080
 
 # El resto queda igual...
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
