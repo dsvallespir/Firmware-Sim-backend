@@ -34,21 +34,23 @@ async def lifespan(app: FastAPI):
 # ---------------------------------------------------------------------------
 # App
 # ---------------------------------------------------------------------------
+# 1. Declarar la App desactivando las URLs automáticas de CDN de Swagger
 app = FastAPI(
     title="Arduino Workbench API",
     description="Compile & simulate Arduino / AVR sketches. No auth required.",
     version="1.0.0",
     lifespan=lifespan,
-    docs_url="/api/docs",
-    redoc_url="/api/redoc",
+    docs_url=None,      # Desactivamos el renderizado automático conflictivo
+    redoc_url=None,     # Desactivamos el renderizado automático conflictivo
     openapi_url="/api/openapi.json",
 )
 
+# 2. Asegurar el Middleware de CORS con los métodos de preflight explícitos
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=False,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "OPTIONS", "PUT", "DELETE"], # Métodos explícitos para el proxy
     allow_headers=["*"],
 )
 
