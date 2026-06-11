@@ -53,6 +53,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     curl \
     ca-certificates \
+    build-essential \
+    gcc \
     && rm -rf /var/lib/apt/lists/*
 
 # Copiar dependencias de Python primero (antes de tocar /usr/local/bin)
@@ -68,6 +70,8 @@ RUN arduino-cli config init
 # =========================================================================
 # NUEVA CORRECCIÓN: Descargar los índices e instalar las herramientas AVR
 # =========================================================================
+   
+# Actualizar el índice de tarjetas de Arduino e instalar el core de AVR    
 RUN arduino-cli core update-index
 RUN arduino-cli core install arduino:avr
 
