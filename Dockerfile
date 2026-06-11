@@ -56,7 +56,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     gcc \
     && rm -rf /var/lib/apt/lists/*
+# Configurar rutas de datos explícitas para Arduino dentro de /app
+ENV ARDUINO_DATA_DIR=/app/.arduino15
+ENV ARDUINO_DOWNLOADS_DIR=/app/.arduino15/staging
+ENV ARDUINO_USER_DIR=/app/Arduino
 
+WORKDIR /app
 # Copiar dependencias de Python primero (antes de tocar /usr/local/bin)
 COPY --from=dependencies /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 COPY --from=dependencies /usr/local/bin /usr/local/bin
