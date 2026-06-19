@@ -459,7 +459,7 @@ class ArduinoCompilerService:
 
             # ── Buscar archivo .hex de salida ─────────────────────────
             # ── Buscar archivo de salida (.hex o .bin) ─────────────────
-            is_esp32 = "esp32" or "esp32:FlashSize=4M,FlashMode=dio" in board_fqbn
+            is_esp32 = "esp32" in board_fqbn
             
             if is_esp32:
                 # 1. Intentamos buscar el archivo de app con nombre genérico
@@ -541,7 +541,10 @@ class ArduinoCompilerService:
                 "stdout": (lib_stdout + "\n" + stdout).strip(),
                 "stderr": stderr,
                 "error": "Archivo binario/.hex no encontrado tras compilación",
-                # ... (resto de las métricas)
+                "flash_used": flash_used,
+                "flash_total": flash_total,
+                "ram_used": ram_used,
+                "ram_total": ram_total,
             }
     # ── Helpers privados ──────────────────────────────────────────
 
